@@ -2,16 +2,13 @@ package com.tana.contactapp.screens
 
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -25,14 +22,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.tana.contactapp.R
 import com.tana.contactapp.components.ContactAppDrawer
 import com.tana.contactapp.components.MainTopBar
 import com.tana.contactapp.components.Screens
@@ -78,7 +74,9 @@ fun HomeScreen(
 
     ) {
         Column(
-            modifier = modifier.fillMaxSize()
+            modifier = modifier
+                .fillMaxSize()
+                .padding(12.dp)
         ) {
             ContactsList(
                 viewModel = viewModel,
@@ -98,17 +96,15 @@ fun ContactsList(
     contacts: List<Contact>
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item(contacts) {
-            contacts.forEach { contact ->
-                ContactRow(
-                    contact = contact,
-                    viewModel = viewModel,
-                    modifier = modifier,
-                    navHostController = navHostController
-                )
-            }
+        items(contacts) { contact ->
+            ContactRow(
+                contact = contact,
+                viewModel = viewModel,
+                modifier = modifier,
+                navHostController = navHostController
+            )
         }
     }
 }
@@ -123,23 +119,12 @@ fun ContactRow(
 ) {
     val context = LocalContext.current
     var isClicked by remember { mutableStateOf(false) }
-    val (visible, setVisibility) = remember { mutableStateOf(false) }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable {
-                isClicked = if (!visible) {
-                    setVisibility(true)
-                    true
-                } else {
-                    setVisibility(false)
-                    false
-                }
-//                navHostController.navigate(
-//                    "${Screens.DetailScreen.route}/${contact.id}/${contact.name}/${contact.number}"
-//                )
-            }
-            .padding(bottom = 8.dp),
+                isClicked = !isClicked
+            },
         verticalAlignment = Alignment.CenterVertically
         ) {
         val cardBgColor by remember { mutableStateOf(viewModel.randomColors()) }
@@ -147,14 +132,16 @@ fun ContactRow(
         Card(
             modifier = modifier
                 .shadow(5.dp, CircleShape)
-                .clip(CircleShape),
+                .clip(CircleShape)
+                .align(Alignment.Top),
             backgroundColor = cardBgColor
         ) {
             Image(
                 imageVector = Icons.Default.Person,
                 contentDescription = "Contact Dp",
-                modifier = modifier.padding(8.dp),
-                colorFilter = ColorFilter.tint(Color.White)
+                modifier = modifier
+                    .padding(8.dp),
+                colorFilter = ColorFilter.tint(Color.White),
             )
         }
         Spacer(modifier = modifier.width(24.dp))
@@ -165,10 +152,8 @@ fun ContactRow(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
-            if (isClicked)
                 AnimatedVisibility(
                     visible = isClicked,
-                   // enter = fadeIn(1.9f)
                 ) {
                     ContactOptions(
                         contact = contact,
@@ -207,65 +192,67 @@ fun ContactOptions(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Option(
-                icon = Icons.Default.Call,
+                icon = R.drawable.phone_call_icon,
+                onClick = {
+                    val callIntent = Intent(Intent.ACTION_DIAL).apply {
+                        data = Uri.parse("tel:${contact.number}")
+                    }
+                    context.startActivity(callIntent)
+                },
                 bgColor = CallBgColor,
                 description = "Call",
                 modifier = modifier
-            ) {
-                val callIntent = Intent(Intent.ACTION_DIAL).apply {
-                    data = Uri.parse("tel:${contact.number}")
-                }
-                context.startActivity(callIntent)
-            }
+            )
             Option(
-                icon = Icons.Default.ChatBubble,
+                icon = R.drawable.text_msg_triange_icon,
+                onClick = { },
                 bgColor = MsgBgColor,
                 description = "Message",
                 modifier = modifier
-            ) {
-
-            }
+            )
             Option(
-                icon = Icons.Default.Videocam,
+                icon = R.drawable.video_camera_icon,
+                onClick = { },
                 bgColor = VidBgColor,
                 description = "Video",
                 modifier = modifier
-            ) {
-
-            }
+            )
             Option(
-                icon = Icons.Default.Info,
+                icon = R.drawable.info_icon,
+                onClick = {
+                    navHostController.navigate(
+                        "${Screens.DetailScreen.route}/${contact.id}/${contact.name}/${contact.number}"
+                    )
+                },
                 bgColor = InfoBgColor,
                 description = "More Info",
-                modifier = modifier
-            ) {
-                navHostController.navigate(
-                    "${Screens.DetailScreen.route}/${contact.id}/${contact.name}/${contact.number}"
-                )
-            }
+                modifier = modifier,
+            )
         }
     }
 }
 
 @Composable
 fun Option(
-    icon: ImageVector,
+    icon: Int,
+    onClick: () -> Unit,
     bgColor: Color,
     description: String,
     modifier: Modifier,
-    onClick: () -> Unit
 ) {
     Card(
         modifier = modifier
-            .clickable { onClick() }
             .shadow(5.dp, CircleShape)
-            .clip(CircleShape),
+            .clip(CircleShape)
+            .clickable { onClick() },
         backgroundColor = bgColor
     ) {
         Image(
-            imageVector = icon,
+            painter = painterResource(id = icon),
             contentDescription = description,
-            modifier = modifier.padding(8.dp),
+            modifier = modifier
+                .padding(12.dp)
+                .size(20.dp),
             colorFilter = ColorFilter.tint(Color.White)
         )
     }
